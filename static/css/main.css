@@ -1,0 +1,47 @@
+body {
+  background-color: #fcfcfc;
+}
+#primary-container {
+  border-bottom: 2px solid #bbc;
+  padding: 20px;
+  padding-top: 28px;
+  background-color: #eeeeee;
+}
+.secondary-container {
+  padding: 20px;
+  border: 1px solid #eeeeee;
+  border-radius: 5px;
+  background-color: #fefefe;
+}
+#footer {
+  padding: 20px;
+  border: 1px solid #eeeeee;
+  border-top: 1px solid #cccccc;
+  border-radius: 5px;
+  background-color: #e1e1e1;
+}
+#navbar {
+  border: 2px solid #555555;
+  border-top: 0px;
+  border-radius: 4px;
+  padding: 10px;
+  background-color: #ccddee;
+}
+.navitem {
+  border: 1px solid #808080;
+  border-radius: 6px;
+  font-size: 20px;
+  color: #dddddd;
+  padding: 5px;
+  background-color: #666666;
+}
+.navitem:hover {
+  background-color: #aaaaaa;
+}
+.selected {
+  background-color: #6666bb;
+}
+#main-heading {
+  font-size: 30px;
+  font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif;
+}

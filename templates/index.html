@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Crossword Generator Demo</title>
+    <meta name="viewport" content="width=900">
+    <meta name="author" content="Otis Peterson and Michael Wehar">
+    <meta name="keywords" content="Crossword, Puzzle, Construction, Generator, Builder, Maker, Creator, Filler">
+    <link rel="stylesheet" href="/static/css/main.css?ver=3">
+    <link rel="stylesheet" href="/static/css/generator.css?ver=3">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+  </head>
+  <body>
+    <!-- Main Heading -->
+    <div id="primary-container">
+      <h1 id="main-heading">Crossword Generator Demo</h1>
+    </div>
+
+    <!-- Main Content -->
+    <div class="secondary-container">
+      <p><i>For information, visit our public GitHub repository @ <a href="https://github.com/MichaelWehar/Automatic-Crossword-Puzzle-Filling">Automatic Crossword Puzzle Filling</a>.</i></p>
+      <hr>
+      <h2>Generate A Crossword</h2>
+      <p>Step 1: Get started by selecting a word list. The smaller the word list, the more recognizable the words/phrases will be</p>
+      <select id="wordlist">
+        <option value="option1">Sample Word List (100,000 words)</option>
+        <option value="option2">Your Word List (Missing!)</option>
+        <option value="option3">Your Other Word List (Missing!)</option>
+      </select>
+      <br><br>
+      <p>Step 2: Select your grid size</p>
+      <select onchange="gridSizeSelected()" id="gridSize">
+        <option value="0" selected="selected" disabled hidden></option>
+        <option value="21">Sunday - 21 x 21</option>
+        <option value="15">Standard - 15 x 15</option>
+        <option value="5">Mini - 5 x 5</option>
+      </select>
+      <br><br>
+      <div style="display: none;" id="selectTemplate"><button onclick="renderGridTemplate()">Select Standard Template</button></div>
+      <br>
+      <p style="visibility: hidden;" id="stepThree">Step 3: Enter characters to partially fill in grid (use '.' for shaded and ' ' for empty)</p>
+      <div style="visibility: hidden;" id="gridContainer"></div>
+      <br><br>
+      <p style="visibility: hidden;" id="stepFour">Step 4: Generate Crossword</p>
+      <div style="visibility: hidden;" id="generateContainer"><button onclick="generateCrossword()">Generate Crossword</button></div>
+      <br>
+      <div style="visibility: hidden;" id="responseMessage"></div>
+      <br><br>
+    </div>
+
+    <!-- Footer -->
+    <div id="footer">
+      <p>Created by Otis Peterson and Michael Wehar.</p>
+    </div>
+
+    <script>
+      // had to copy in the cell functionality so that when you modify a cell
+      // it edits the global variable "grid" instead
+      var selectedCellId = "";
+
+      function isACell(id) {
+        return id.substring(0, 4) == "cell";
+      }
+
+      function clickEvent(id) {
+        console.log("Clicked Element -> " + id);
+        if (isACell(id)) {
+          if (selectedCellId != id) {
+            if (selectedCellId != "") {
+              document.getElementById(selectedCellId).classList.remove("selectedCell");
+            }
+            selectedCellId = id;
+            document.getElementById(selectedCellId).classList.add("selectedCell");
+          }
+        } else {
+          if (selectedCellId != "") {
+            document.getElementById(selectedCellId).classList.remove("selectedCell");
+          }
+          selectedCellId = "";
+        }
+      }
+
+      document.addEventListener('click', function(event) {
+        var target = event.target;
+        if("id" in target) {
+          clickEvent(target.id);
+        } else {
+          clickEvent("");
+        }
+      });
+
+      document.addEventListener('keydown', function(event) {
+        if(selectedCellId != "") {
+          var key_val = event.key.substring(0, 1).toUpperCase();
+          // Prevent default behavior on space bar
+          if(key_val == " ") {
+            event.preventDefault();
+          }
+          // Update cell
+          var cell = document.getElementById(selectedCellId);
+          cell.innerHTML = key_val;
+          var cell_info = selectedCellId.split("_");
+          var r = cell_info[1];
+          var c = cell_info[2];
+          grid[r][c] = key_val;
+          // Add and remove shading
+          var isShaded = (key_val == ".");
+          if(isShaded) {
+            cell.classList.add("shadedCell");
+          } else {
+            cell.classList.remove("shadedCell");
+          }
+        }
+        console.log("Key Down -> " + selectedCellId);
+      });
+
+      // Grid object
+      var grid;
+
+      function createGrid(length) {
+        var newGrid = [];
+        var row = new Array(length);
+        for(var i = 0; i < length; i++) {
+          row[i] = " ";
+        }
+        for(var i = 0; i < length; i++) {
+          // Creates a copy of the original array
+          newGrid[i] = row.slice();
+        }
+        return newGrid;
+      }
+
+      function createCellTag(isShaded, r, c) {
+        var cell = document.createElement("td");
+        cell.setAttribute("id", "cell_" + r + "_" + c);
+        cell.classList.add("gridCell");
+        if(isShaded) {
+          cell.classList.add("shadedCell");
+        }
+        return cell;
+      }
+
+      function renderGrid(gridContainer, gridData) {
+        // Get grid width and height
+        var gridWidth = gridData[0].length;
+        var gridHeight = gridData.length;
+        // Clear the grid
+        gridContainer.innerHTML = "";
+        // Create cells
+        var myTable = document.createElement("table");
+        for(var r = 0; r < gridHeight; r++) {
+          var myRow = document.createElement("tr");
+          for(var c = 0; c < gridWidth; c++) {
+            var cell;
+            var isShaded = (gridData[r][c] == ".");
+            cell = createCellTag(isShaded, r, c);
+            cell.innerHTML = gridData[r][c];
+            myRow.appendChild(cell);
+          }
+          myTable.appendChild(myRow);
+        }
+        gridContainer.appendChild(myTable);
+      }
+
+      function renderGridTemplate() {
+        var listOfGrids = [
+          [
+          [" ", " ", " ", " ", ".", " ", " ", " ", " ", " ", ".", " ", " ", " ", " "],
+          [" ", " ", " ", " ", ".", " ", " ", " ", " ", " ", ".", " ", " ", " ", " "],
+          [" ", " ", " ", " ", ".", " ", " ", " ", " ", " ", ".", " ", " ", " ", " "],
+          [" ", " ", " ", " ", " ", ".", " ", " ", " ", ".", " ", " ", " ", ".", "."],
+          [" ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", ".", ".", "."],
+          [".", ".", ".", ".", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " "],
+          [" ", " ", " ", " ", " ", " ", " ", " ", ".", " ", " ", " ", " ", " ", " "],
+          [" ", " ", " ", " ", ".", ".", ".", ".", ".", ".", ".", " ", " ", " ", " "],
+          [" ", " ", " ", " ", " ", " ", ".", " ", " ", " ", " ", " ", " ", " ", " "],
+          [" ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", ".", ".", ".", "."],
+          [".", ".", ".", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " "],
+          [".", ".", " ", " ", " ", ".", " ", " ", " ", ".", " ", " ", " ", " ", " "],
+          [" ", " ", " ", " ", ".", " ", " ", " ", " ", " ", ".", " ", " ", " ", " "],
+          [" ", " ", " ", " ", ".", " ", " ", " ", " ", " ", ".", " ", " ", " ", " "],
+          [" ", " ", " ", " ", ".", " ", " ", " ", " ", " ", ".", " ", " ", " ", " "]
+          ],
+
+          [
+          [" ", " ", " ", " ", " ", ".", " ", " ", " ", " ", ".", " ", " ", " ", " "],
+          [" ", " ", " ", " ", " ", ".", " ", " ", " ", " ", ".", " ", " ", " ", " "],
+          [" ", " ", " ", " ", " ", ".", " ", " ", " ", " ", ".", " ", " ", " ", " "],
+          [" ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", ".", "."],
+          [" ", " ", " ", ".", " ", " ", " ", ".", ".", " ", " ", " ", " ", " ", " "],
+          [".", ".", ".", " ", " ", " ", ".", " ", " ", " ", " ", ".", " ", " ", " "],
+          [" ", " ", " ", " ", " ", " ", " ", " ", " ", ".", " ", " ", " ", " ", " "],
+          [" ", " ", " ", " ", ".", " ", " ", " ", " ", " ", ".", " ", " ", " ", " "],
+          [" ", " ", " ", " ", " ", ".", " ", " ", " ", " ", " ", " ", " ", " ", " "],
+          [" ", " ", " ", ".", " ", " ", " ", " ", ".", " ", " ", " ", ".", ".", "."],
+          [" ", " ", " ", " ", " ", " ", ".", ".", " ", " ", " ", ".", " ", " ", " "],
+          [".", ".", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " "],
+          [" ", " ", " ", " ", ".", " ", " ", " ", " ", ".", " ", " ", " ", " ", " "],
+          [" ", " ", " ", " ", ".", " ", " ", " ", " ", ".", " ", " ", " ", " ", " "],
+          [" ", " ", " ", " ", ".", " ", " ", " ", " ", ".", " ", " ", " ", " ", " "]
+          ],
+
+          [
+          [" ", " ", " ", " ", ".", " ", " ", " ", " ", " ", ".", " ", " ", " ", " "],
+          [" ", " ", " ", " ", ".", " ", " ", " ", " ", " ", ".", " ", " ", " ", " "],
+          [" ", " ", " ", " ", ".", " ", " ", " ", " ", " ", ".", " ", " ", " ", " "],
+          [" ", " ", " ", " ", " ", " ", " ", " ", ".", " ", " ", " ", " ", " ", " "],
+          [".", ".", ".", " ", " ", " ", " ", ".", " ", " ", " ", " ", ".", ".", "."],
+          [" ", " ", " ", " ", " ", " ", ".", " ", " ", " ", " ", " ", " ", " ", " "],
+          [" ", " ", " ", " ", " ", ".", " ", " ", " ", " ", " ", ".", " ", " ", " "],
+          [" ", " ", " ", " ", ".", " ", " ", " ", " ", " ", ".", " ", " ", " ", " "],
+          [" ", " ", " ", ".", " ", " ", " ", " ", " ", ".", " ", " ", " ", " ", " "],
+          [" ", " ", " ", " ", " ", " ", " ", " ", ".", " ", " ", " ", " ", " ", " "],
+          [".", ".", ".", " ", " ", " ", " ", ".", " ", " ", " ", " ", ".", ".", "."],
+          [" ", " ", " ", " ", " ", " ", ".", " ", " ", " ", " ", " ", " ", " ", " "],
+          [" ", " ", " ", " ", ".", " ", " ", " ", " ", " ", ".", " ", " ", " ", " "],
+          [" ", " ", " ", " ", ".", " ", " ", " ", " ", " ", ".", " ", " ", " ", " "],
+          [" ", " ", " ", " ", ".", " ", " ", " ", " ", " ", ".", " ", " ", " ", " "]
+          ],
+
+          [
+          [" ", " ", " ", " ", ".", " ", " ", " ", " ", " ", ".", " ", " ", " ", " "],
+          [" ", " ", " ", " ", ".", " ", " ", " ", " ", " ", ".", " ", " ", " ", " "],
+          [" ", " ", " ", " ", ".", " ", " ", " ", " ", " ", ".", " ", " ", " ", " "],
+          [" ", " ", " ", " ", " ", " ", " ", " ", " ", ".", " ", " ", " ", " ", " "],
+          [" ", " ", " ", " ", " ", ".", " ", " ", " ", " ", " ", " ", ".", ".", "."],
+          [" ", " ", " ", ".", " ", " ", " ", " ", " ", " ", " ", ".", " ", " ", " "],
+          [".", ".", " ", " ", " ", " ", ".", " ", " ", " ", ".", " ", " ", " ", " "],
+          [" ", " ", " ", " ", " ", " ", " ", ".", " ", " ", " ", " ", " ", " ", " "],
+          [" ", " ", " ", " ", ".", " ", " ", " ", ".", " ", " ", " ", " ", ".", "."],
+          [" ", " ", " ", ".", " ", " ", " ", " ", " ", " ", " ", ".", " ", " ", " "],
+          [".", ".", ".", " ", " ", " ", " ", " ", " ", ".", " ", " ", " ", " ", " "],
+          [" ", " ", " ", " ", " ", ".", " ", " ", " ", " ", " ", " ", " ", " ", " "],
+          [" ", " ", " ", " ", ".", " ", " ", " ", " ", " ", ".", " ", " ", " ", " "],
+          [" ", " ", " ", " ", ".", " ", " ", " ", " ", " ", ".", " ", " ", " ", " "],
+          [" ", " ", " ", " ", ".", " ", " ", " ", " ", " ", ".", " ", " ", " ", " "]
+          ]
+        ];
+        // get a random grid
+        window.grid = listOfGrids[Math.floor(Math.random() * listOfGrids.length)];
+        var gridContainer = document.getElementById("gridContainer");
+        renderGrid(gridContainer, grid, false)
+      }
+
+      function renderGridCaller() {
+        var gridContainer = document.getElementById("gridContainer");
+        renderGrid(gridContainer, grid);
+      }
+
+      // Set default select value
+      document.getElementById("gridSize").value = 0;
+
+      function gridSizeSelected() {
+        // Get size
+        var select = document.getElementById("gridSize");
+        var selectedValue = select.options[select.selectedIndex].value;
+        var size = parseInt(selectedValue);
+        // Make step 3 visibile
+        if(size > 0) {
+          document.getElementById("stepThree").style.visibility = "visible";
+          document.getElementById("gridContainer").style.visibility = "visible";
+          document.getElementById("stepFour").style.visibility = "visible";
+          document.getElementById("generateContainer").style.visibility = "visible";
+          grid = createGrid(size);
+          renderGridCaller();
+        }
+        if(size == 15) {
+          document.getElementById("selectTemplate").style.display = "block";
+        } else {
+          document.getElementById("selectTemplate").style.display = "none";
+        }
+      }
+
+      function generateCrossword() {
+        document.getElementById("responseMessage").style.visibility = "hidden";
+        // Get name of word list
+        var select = document.getElementById("wordlist");
+        var selectedValue = select.options[select.selectedIndex].value;
+        // Create request data
+        var jsonData = {"wordlist": selectedValue, "grid": grid};
+        var textData = JSON.stringify(jsonData);
+        // Send AJAX request
+        var xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function() {
+          if(this.readyState == 4 && this.status == 200) {
+            document.getElementById("responseMessage").style.visibility = "visible";
+            if(this.responseText != "") {
+              var gridData = JSON.parse(this.responseText);
+              grid = gridData;
+              renderGridCaller();
+              document.getElementById("responseMessage").innerHTML = "Grid generated successfully!";
+            } else {
+              document.getElementById("responseMessage").innerHTML = "Failed to generate a valid crossword within the time limit. There might be some word spaces of length less than 3, the word list might be too small, or maybe the grid is just too open. If you're interested in generating a crossword that takes longer than the time limit, feel free to email me!";
+            }
+          }
+        };
+        xhttp.open("POST", "/generateCrossword", true);
+        xhttp.setRequestHeader("Content-type", "application/json");
+        xhttp.send(textData);
+      }
+    </script>
+  </body>
+</html>
